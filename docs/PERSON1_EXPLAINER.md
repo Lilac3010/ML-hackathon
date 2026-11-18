@@ -55,8 +55,15 @@ A candidate is positive (`label=1`) if it equals the point's reference arc.
 | kinematics | `speed_mps`, `accel`, `turn_rate`, `dt_prev`, `dt_next` | driving behaviour and time gaps |
 | temporal support | `d_prev1`, `d_next1`, `d_prev3`, `d_next3`, `support_mean` | distance of neighbouring GPS points (i+-1, i+-3) to the same arc: a real road is followed by neighbours, a noisy outlier is not |
 | topology | in/out degree of the arc's start/end nodes | junction structure |
-Impact: nearest-arc-only gets 56% top-1; adding a simple heading term (`dist + heading_diff/6`) gets 84.6% - heading
-is the big win. A learned classifier on all 28 features (stand-in LightGBM) reaches 88.1% out-of-fold (89.2% student-test).
+Impact: nearest-arc-only gets 56% top-1; adding a simple heading term (`dist + heading_diff/6`) gets 84.6% - so
+direction clearly matters for a simple rule. A learned classifier on all 28 features (LightGBM) reaches 88.3% in group-CV
+(89.2% student-test). Gain-based importance of that model (`scripts/feature_importance.py`, `results/feature_importance_lightgbm.csv`)
+shows what the model actually leans on: the **temporal-support features are the most used** (support_mean 15%, d_next1 10%,
+d_next3 4%, d_prev3 2%), then plain geometry (dist_m 9%, along_m 8%, lat_off_m 4%) and the candidate-set context
+(n_cand 6%, dist_ratio 4%, rank 3%). Heading features individually carry little gain (cos_heading 3%, heading_diff 1%) -
+because neighbour support already encodes direction of travel indirectly (a road that the next points follow is the
+one being driven along) - so do NOT claim "heading is the biggest feature". Features with ~0 gain (end_in_deg,
+dt_prev, heading_valid) add nothing; importance is not causal and correlated features share credit.
 (Scaling/imputation: tree models need none; models that do must fit scalers on training folds only.)
 
 ## 6. HMM + Viterbi (`hmm.py`) - report section 5, answers to the 6 mandatory questions
