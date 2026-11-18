@@ -1,0 +1,101 @@
+{
+  "name": "knn",
+  "base_model": "knn",
+  "family": "Instance-based (K-Nearest Neighbours)",
+  "params": {
+    "n_neighbors": 15,
+    "weights": "distance",
+    "metric": "minkowski",
+    "p": 2,
+    "n_jobs": -1
+  },
+  "seed": 42,
+  "cv_folds": [
+    {
+      "accuracy": 0.9564842701113974,
+      "precision_macro": 0.9149372617667948,
+      "recall_macro": 0.8853991499082707,
+      "f1_macro": 0.8993897512272265,
+      "log_loss": 0.18372797193923437,
+      "top1_accuracy": 0.8483616191058249,
+      "n_points": 42542,
+      "fold": 0
+    },
+    {
+      "accuracy": 0.9595662801894879,
+      "precision_macro": 0.9201260383396717,
+      "recall_macro": 0.9137590935125894,
+      "f1_macro": 0.9169055936748509,
+      "log_loss": 0.15730390777153203,
+      "top1_accuracy": 0.8711284276977708,
+      "n_points": 40552,
+      "fold": 1
+    },
+    {
+      "accuracy": 0.9510295751095488,
+      "precision_macro": 0.8942597341526637,
+      "recall_macro": 0.8535807303876837,
+      "f1_macro": 0.8724120691398045,
+      "log_loss": 0.1725382562678303,
+      "top1_accuracy": 0.8018001175150901,
+      "n_points": 37442,
+      "fold": 2
+    },
+    {
+      "accuracy": 0.9735384501003692,
+      "precision_macro": 0.9365642662905074,
+      "recall_macro": 0.9158800042138229,
+      "f1_macro": 0.9258954983382592,
+      "log_loss": 0.10321161241649615,
+      "top1_accuracy": 0.8859809106936591,
+      "n_points": 32898,
+      "fold": 3
+    },
+    {
+      "accuracy": 0.9682937567688298,
+      "precision_macro": 0.9248164411103146,
+      "recall_macro": 0.8923499225124749,
+      "f1_macro": 0.907750661364465,
+      "log_loss": 0.10397691431789625,
+      "top1_accuracy": 0.8663148352004144,
+      "n_points": 30886,
+      "fold": 4
+    }
+  ],
+  "cv": {
+    "f1_macro_mean": 0.9044707147489213,
+    "f1_macro_std": 0.020481568324673318,
+    "top1_mean": 0.8547171820425519,
+    "top1_std": 0.03248793687794879,
+    "log_loss_mean": 0.1441517325425978,
+    "precision_macro_mean": 0.9181407483319903,
+    "recall_macro_mean": 0.8921937801069684,
+    "cv_fit_time_s": 0.5652018780001526
+  },
+  "student_test": {
+    "accuracy": 0.9670161153890232,
+    "precision_macro": 0.9198854754991017,
+    "recall_macro": 0.8999918466221635,
+    "f1_macro": 0.9096203764621379,
+    "log_loss": 0.1198544255595505,
+    "top1_accuracy": 0.858203880956117,
+    "n_points": 19119,
+    "confusion_matrix": [
+      [
+        161611,
+        2513
+      ],
+      [
+        3531,
+        15586
+      ]
+    ],
+    "route_continuity_clf_only": 0.9281985003657937,
+    "train_time_s": 0.14095617500061053,
+    "inference_time_s": 69.09988394799984,
+    "inference_ms_per_1k_rows": 376.7447451816384,
+    "n_train_rows": 299853
+  },
+  "history": null,
+  "max_train_rows": 300000
+}
