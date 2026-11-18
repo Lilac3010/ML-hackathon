@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PathSnap | Route lab</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@600;700&family=DM+Sans:wght@400;500;600;700&display=swap">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <link rel="stylesheet" href="styles.css">
+  <script defer src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script defer src="app.js"></script>
+</head>
+<body>
+  <header class="masthead">
+    <div class="wordmark"><span class="route-mark" aria-hidden="true"></span>PathSnap</div>
+    <span id="connection" class="connection" role="status">API disconnected</span>
+  </header>
+
+  <main>
+    <div class="workspace-title">
+      <h1>Route lab</h1>
+      <p>Compare a trip’s raw GPS points with its matched route.</p>
+    </div>
+
+    <div class="workspace">
+      <section class="trip-panel" aria-labelledby="trip-heading">
+        <h2 id="trip-heading">Trip selection</h2>
+        <form id="connection-form">
+          <label for="api-url">Prediction server URL</label>
+          <div class="url-field">
+            <input id="api-url" type="url" value="http://127.0.0.1:8000" required spellcheck="false">
+            <button id="connect" class="secondary" type="submit">Connect</button>
+          </div>
+        </form>
+        <form id="prediction-form">
+          <label for="trip">Trip</label>
+          <select id="trip" disabled><option>Connect to load trips</option></select>
+          <button id="predict" class="primary" type="submit" disabled>Match route</button>
+        </form>
+        <p id="feedback" class="feedback" role="status"></p>
+      </section>
+
+      <section class="map-panel" aria-labelledby="map-heading">
+        <div class="map-heading">
+          <h2 id="map-heading">Trip map</h2>
+          <button id="fit" class="secondary" type="button" disabled>Fit trip</button>
+        </div>
+        <div class="map-frame">
+          <div id="map" aria-label="Trip map"></div>
+          <p id="map-message" class="map-message">Connect to a prediction server to load a trip.</p>
+        </div>
+        <div class="layers" aria-label="Map layers">
+          <label><input id="gps-toggle" type="checkbox" checked disabled><span class="gps-key" aria-hidden="true"></span> GPS observations</label>
+          <label><input id="route-toggle" type="checkbox" checked disabled><span class="route-key" aria-hidden="true"></span> Matched route</label>
+          <span id="gps-count" class="gps-count"></span>
+        </div>
+      </section>
+
+      <section class="score-panel" aria-labelledby="score-heading">
+        <h2 id="score-heading">Match quality</h2>
+        <p id="scores-empty" class="score-note">Run a trip to compare the classifier with the HMM.</p>
+        <div id="scores" hidden>
+          <table>
+            <thead><tr><td></td><th scope="col">Classifier</th><th scope="col">With HMM</th></tr></thead>
+            <tbody>
+              <tr><th scope="row">Top-1 accuracy</th><td id="top1-clf"></td><td id="top1-hmm"></td></tr>
+              <tr><th scope="row">Route arc F1</th><td id="f1-clf"></td><td id="f1-hmm"></td></tr>
+              <tr><th scope="row">Continuity</th><td id="cont-clf"></td><td id="cont-hmm"></td></tr>
+            </tbody>
+          </table>
+          <dl class="details">
+            <div><dt>Scored points</dt><dd id="scored"></dd></div>
+            <div><dt>Route breaks</dt><dd id="breaks"></dd></div>
+            <div><dt>Server time</dt><dd id="elapsed"></dd></div>
+          </dl>
+        </div>
+      </section>
+    </div>
+  </main>
+</body>
+</html>
