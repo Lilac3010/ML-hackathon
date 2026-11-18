@@ -1,0 +1,2 @@
+model,family,cv_f1_macro,cv_f1_std,cv_top1,cv_top1_std,cv_log_loss,test_top1,test_precision_macro,test_recall_macro,test_f1_macro,test_log_loss,route_continuity,train_time_s,inference_s,inference_ms_per_1k_rows,n_train_rows
+lightgbm_gbdt,"Boosting (gradient-boosted trees, LightGBM)",0.9308782685641711,0.015304683183833526,0.8826464436811483,0.02653576382967565,0.07888654016232212,0.8915738270830065,0.9399626822055422,0.9328491975646689,0.9363677905723786,0.06502904049130831,0.9286691849972165,15.191932299989276,0.3268026000005193,1.7817853696331192,1575894

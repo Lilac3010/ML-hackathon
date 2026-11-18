@@ -1,0 +1,11 @@
+# generated tables (100MB+). Rebuild with: python scripts/build_dataset.py  (~40 s)
+data/processed/
+# raw dataset is distributed separately - never commit it (esp. evaluator data)
+Student folder/
+data/raw/
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+.env
+*.key
+.vscode/
