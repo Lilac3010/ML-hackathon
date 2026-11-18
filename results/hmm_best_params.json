@@ -1,7 +1,9 @@
 {
-  "beta": 8.0,
-  "lam_break": 24.0,
-  "lam_uturn": 12.0,
+  "beta": 4.0,
+  "lam_break": 288.0,
+  "lam_uturn": 96.0,
   "eps": 0.001,
-  "back_pen": 1.0
+  "back_pen": 1.0,
+  "back_free_m": 10.0,
+  "w_head": 5.0
 }
