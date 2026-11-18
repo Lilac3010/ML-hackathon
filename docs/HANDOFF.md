@@ -157,6 +157,17 @@ out = run_trip(trip_dir, lambda X: art["model"].predict_proba(X)[:, 1], evaluate
   from the reference route; 169 km of track for a 31 km route) and `00000002` is 87% valid. Their invalid points
   are excluded by `ref_valid`. Decoding noisy trips like these is the hard case to expect in evaluation.
 
+## 6b. Data-quality scan (`scripts/data_quality_scan.py`, all 90 trips, raw files)
+* **No missing values** (0 NaNs in tracks/nodes), no invalid coordinates, no out-of-order or duplicate timestamps,
+  no arcs pointing at non-existent nodes, no route ids out of range, every track lies inside its network bbox.
+* Found but minor: 6 repeated consecutive GPS points (5 trips); 22 self-loop arcs (8 trips); 1,775 duplicate arcs (same
+  from/to, different id; 53 trips) of which only 10 of 31,336 reference-route arcs (0.03%) are affected; the reference route
+  has 13 non-connected steps in 10 trips; no isolated nodes.
+* **Time gaps:** 96.5% of steps are exactly 1 s, but 590 steps are >10 s and 4 are >1000 s (max 153,064 s!).
+  **Scale-sensitive models (LogReg, KNN, MLP): `dt_prev`/`dt_next` have this extreme tail** (median 1, 99.9th pct 26,
+  max 153,064), which wrecks a StandardScaler. Clip or log-transform inside your Pipeline (e.g. clip dt to 60 s;
+  `speed_mps` max 103 and `accel` max 49 are also outliers). Tree models are unaffected. Describe what you did in the report.
+
 ## 7. Open items / caveats
 * The selected model's probabilities replace the stand-in; decoder params must be re-tuned on them (P1).
 * Candidate-level macro-F1 uses a 0.5 threshold on imbalanced labels (~12% positives); Top-1 is the primary metric.
