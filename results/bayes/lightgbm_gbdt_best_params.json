@@ -1,0 +1,24 @@
+{
+  "best_params": {
+    "n_estimators": 700,
+    "learning_rate": 0.044717210737677315,
+    "num_leaves": 69,
+    "min_child_samples": 807,
+    "subsample": 0.6605750711779386,
+    "colsample_bytree": 0.6107789201307424,
+    "reg_lambda": 0.2746317008746943
+  },
+  "best_trial": 17,
+  "best_cv_top1": 0.8881181857715118,
+  "best_cv_log_loss": 0.06880331176903114,
+  "best_cv_f1_macro": 0.9329643256635943,
+  "best_cv_top1_std": 0.031114339312627148,
+  "baseline_cv_top1": 0.8822487673182353,
+  "baseline_cv_log_loss": 0.0774059778095317,
+  "unconstrained_best_trial": 17,
+  "unconstrained_best_cv_top1": 0.8881181857715118,
+  "n_trials": 30,
+  "n_complete": 22,
+  "n_pruned": 8,
+  "seconds": 3673.3889867999824
+}

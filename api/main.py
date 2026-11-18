@@ -3,14 +3,18 @@
 Start:  uvicorn api.main:app --host 0.0.0.0 --port 8000
 Env vars (all optional):
   PATHSNAP_DATA       folder containing train/ and student_test/ (used by config.py)
-  PATHSNAP_TRIP_DIR   folder with one sub-folder per trip to serve (default: <data>/student_test;
-                      on the evaluation day point it at the evaluator trips)
-  PATHSNAP_MODEL      model name in models/<name>.joblib (default: lightgbm_gbdt)
+  PATHSNAP_TRIP_DIR   folder with one sub-folder per trip to serve. Default: <repo>/eval_trips if it
+                      exists (unzip the evaluator trips there on the day - git-ignored), otherwise
+                      <data>/student_test. A zip that wraps the trips in extra single folders
+                      (e.g. eval_trips/evaluation/test/<id>/...) is found automatically.
+  PATHSNAP_MODEL      model name in models/<name>.joblib (default: lightgbm_gbdt_tuned, the final
+                      Bayesian-optimised model; falls back to lightgbm_gbdt if it is missing)
 
 Every request runs the full pipeline (features -> model -> HMM). Nothing is cached or hard-coded.
 The reference route is read server-side inside run_trip(evaluate=True) and is never returned.
 """
 import logging
+import math
 import os
 import time
 from contextlib import asynccontextmanager
@@ -24,8 +28,37 @@ from pydantic import BaseModel
 import config
 from pathsnap.inference import load_hmm_params, run_trip
 
-MODEL_NAME = os.environ.get("PATHSNAP_MODEL", "lightgbm_gbdt")
-TRIP_DIR = Path(os.environ.get("PATHSNAP_TRIP_DIR", str(config.DATA_DIR / "student_test")))
+def _default_model():
+    tuned = "lightgbm_gbdt_tuned"
+    return tuned if (config.ROOT / "models" / f"{tuned}.joblib").exists() else "lightgbm_gbdt"
+
+
+def _is_trip(p: Path) -> bool:
+    return p.is_dir() and (p / f"{p.name}.track").exists()
+
+
+def _resolve_trip_dir(p: Path, depth=3) -> Path:
+    """Folder whose sub-folders are trips. If p only wraps a single folder (as zips often do),
+    descend into it (up to `depth` levels)."""
+    for _ in range(depth):
+        if not p.is_dir() or any(_is_trip(c) for c in p.iterdir()):
+            return p
+        subs = [c for c in p.iterdir() if c.is_dir() and not c.name.startswith(("_", "."))]
+        if len(subs) != 1:
+            return p
+        p = subs[0]
+    return p
+
+
+def _default_trip_dir():
+    ev = config.ROOT / "eval_trips"
+    if ev.is_dir() and any(ev.iterdir()):
+        return ev
+    return config.DATA_DIR / "student_test"
+
+
+MODEL_NAME = os.environ.get("PATHSNAP_MODEL") or _default_model()
+TRIP_DIR = _resolve_trip_dir(Path(os.environ.get("PATHSNAP_TRIP_DIR") or _default_trip_dir()))
 
 LOG_DIR = config.ROOT / "logs"
 LOG_DIR.mkdir(exist_ok=True)
@@ -57,8 +90,7 @@ app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], all
 def trip_ids():
     if not TRIP_DIR.is_dir():
         return []
-    return sorted(p.name for p in TRIP_DIR.iterdir()
-                  if p.is_dir() and (p / f"{p.name}.track").exists())
+    return sorted(p.name for p in TRIP_DIR.iterdir() if _is_trip(p))
 
 
 def n_points(tid):
@@ -68,6 +100,20 @@ def n_points(tid):
 
 def predict_proba(X):
     return state["model"].predict_proba(X[state["cols"]])[:, 1]
+
+
+def json_safe(x):
+    """JSON has no NaN/Infinity (a metric is NaN when a trip has no scoreable points or never
+    changes arc). Send null instead; the UI shows it as 'Unavailable'. Also unwraps numpy scalars."""
+    if isinstance(x, dict):
+        return {k: json_safe(v) for k, v in x.items()}
+    if isinstance(x, (list, tuple)):
+        return [json_safe(v) for v in x]
+    if hasattr(x, "item") and not hasattr(x, "__len__"):   # numpy scalar -> python
+        x = x.item()
+    if isinstance(x, float) and not math.isfinite(x):
+        return None
+    return x
 
 
 class PredictRequest(BaseModel):
@@ -107,4 +153,4 @@ def predict(req: PredictRequest):
              tid, out["n_obs"],
              m.get("hmm", {}).get("top1_accuracy"), m.get("classifier_only", {}).get("top1_accuracy"),
              out["api_time_s"])
-    return out
+    return json_safe(out)

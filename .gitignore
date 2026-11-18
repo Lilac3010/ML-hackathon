@@ -3,6 +3,9 @@ data/processed/
 # raw dataset is distributed separately - never commit it (esp. evaluator data)
 Student folder/
 data/raw/
+eval_trips/
+# API request logs (show them live on the day; not part of the repo)
+logs/
 __pycache__/
 *.pyc
 .ipynb_checkpoints/
