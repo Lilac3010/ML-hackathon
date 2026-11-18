@@ -24,7 +24,7 @@ from pathsnap.hmm import HMMParams, TransitionGeometry, decode
 from pathsnap.evaluate import route_continuity
 
 GRID = dict(beta=[8.0, 15.0, 30.0, 60.0], lam_break=[6.0, 12.0, 24.0],
-            lam_uturn=[0.0, 6.0, 12.0], eps=[1e-3, 1e-4], back_pen=[1.0])
+            lam_uturn=[0.0, 6.0, 12.0], eps=[1e-3, 1e-4], back_pen=[1.0], back_free_m=[10.0], w_head=[0.0])
 
 
 def settings():
@@ -59,7 +59,11 @@ def run(partition, tag, probs, sets):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--probs", default="standin_lgbm")
+    ap.add_argument("--grid", default=None, help='JSON overriding GRID entries, e.g. \'{"beta":[8],"back_pen":[1,4]}\'')
+    ap.add_argument("--no-save-best", action="store_true", help="do not overwrite results/hmm_best_params.json")
     a = ap.parse_args()
+    if a.grid:
+        GRID.update(json.loads(a.grid))
     sets = settings()
     print(len(sets), "settings")
     tr = run("train", "train_oof", a.probs, sets)
@@ -67,7 +71,8 @@ def main():
     best = tr.sort_values(["top1", "continuity"], ascending=False).iloc[0]
     print(tr.sort_values(["top1", "continuity"], ascending=False).head(8).round(4).to_string())
     bp = {k: float(best[k]) for k in GRID}
-    json.dump(bp, open(config.RESULTS_DIR / "hmm_best_params.json", "w"), indent=2)
+    if not a.no_save_best:
+        json.dump(bp, open(config.RESULTS_DIR / "hmm_best_params.json", "w"), indent=2)
     te = run("student_test", "student_test", a.probs, [bp, HMMParams().to_dict()])
     print("\nstudent_test  [tuned, default]:\n", te.round(4).to_string())
     print("best:", bp)

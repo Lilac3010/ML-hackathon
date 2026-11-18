@@ -25,7 +25,11 @@ from dataclasses import dataclass, asdict
 import heapq
 import numpy as np
 
+from pathsnap.geo import bearing, ang_diff
+
 SEARCH_BASE_M = 350.0   # graph-search radius; larger for big GPS jumps (rounded up to multiples)
+HEAD_WINDOW = 7         # points each side for the long-window direction of travel
+HEAD_MIN_MOVE_M = 20.0  # below this displacement over the window, direction is treated as unknown
 
 
 @dataclass
@@ -33,8 +37,10 @@ class HMMParams:
     beta: float = 15.0          # metres: scale of |d_net - d_gc| mismatch penalty
     lam_break: float = 12.0     # log-penalty floor for unreachable / inconsistent transitions
     lam_uturn: float = 6.0      # extra log-penalty for a U-turn (b == reverse(a))
-    back_pen: float = 1.0       # extra penalty per (backward metres beyond 10 m)/beta on one arc
+    back_pen: float = 1.0       # extra penalty per (backward metres beyond back_free_m)/beta on one arc
+    back_free_m: float = 10.0   # backward jitter tolerated for free (GPS noise); lower = stricter direction
     eps: float = 1e-4           # probability floor used in the emission log
+    w_head: float = 0.0         # weight of the long-window direction term (0 = off); see TransitionGeometry
     gap_scale_max: float = 8.0  # beta_i = beta * min(max(dt,1), gap_scale_max)
 
     def to_dict(self):
@@ -124,6 +130,14 @@ class TransitionGeometry:
         self.offs, self.counts = offs, counts
         self.used = np.flatnonzero(counts > 0)           # observations that enter the chain
         arc, tt = cand["arc"], cand["t"]
+        # long-window direction of travel (+-HEAD_WINDOW points): averages out GPS jitter that makes the
+        # short-window heading feature useless at walking speed. Angle (0..180) between it and each
+        # candidate arc's direction; 0 when the vehicle barely moved (no direction information).
+        idx = np.arange(N)
+        dd = P[np.clip(idx + HEAD_WINDOW, 0, N - 1)] - P[np.clip(idx - HEAD_WINDOW, 0, N - 1)]
+        moved = np.hypot(dd[:, 0], dd[:, 1]) > HEAD_MIN_MOVE_M
+        hl = np.where(moved, bearing(dd[:, 0], dd[:, 1]), np.nan)[obs]
+        self.hd_long = np.nan_to_num(ang_diff(hl, net.bearing[arc]), nan=0.0)
         L = net.length
         u, v, rev = net.u, net.v, net.reverse_arc
         self.drt, self.uturn, self.back, self.dgc, self.dt = [None], [None], [None], [0.0], [0.0]
@@ -173,7 +187,7 @@ def decode(prep, prob, params: HMMParams | None = None, tg: TransitionGeometry |
     used = tg.used
     if len(used) == 0:
         return dict(pred_arc=pred_arc, pred_row=pred_row, imputed=np.ones(N, bool), route_logp=float("nan"))
-    logE = np.log(np.maximum(np.asarray(prob, float), p.eps))
+    logE = np.log(np.maximum(np.asarray(prob, float), p.eps)) - p.w_head * tg.hd_long / 180.0
     offs = tg.offs
     delta = logE[offs[used[0]]:offs[used[0] + 1]].copy()
     back_ptr = [None]
@@ -184,7 +198,7 @@ def decode(prep, prob, params: HMMParams | None = None, tg: TransitionGeometry |
         lt = -np.abs(drt - tg.dgc[s]) / beta
         lt = np.where(np.isfinite(drt), lt, -p.lam_break)
         lt = np.maximum(lt, -p.lam_break)
-        lt = lt - p.lam_uturn * tg.uturn[s] - p.back_pen * np.maximum(tg.back[s] - 10.0, 0.0) / beta
+        lt = lt - p.lam_uturn * tg.uturn[s] - p.back_pen * np.maximum(tg.back[s] - p.back_free_m, 0.0) / beta
         tot = delta[:, None] + lt
         bp = np.argmax(tot, axis=0)
         delta = tot[bp, np.arange(tot.shape[1])] + logE[offs[i]:offs[i + 1]]
