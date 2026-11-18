@@ -89,11 +89,16 @@
         16523
       ]
     ],
-    "route_continuity_clf_only": 0.9331594775800073,
+    "route_continuity_clf_only": 0.642642039751054,
     "train_time_s": 123.87031629995909,
     "inference_time_s": 0.44509309995919466,
     "inference_ms_per_1k_rows": 2.4267260224694795,
-    "n_train_rows": 1575894
+    "n_train_rows": 1575894,
+    "route_changes_clf": 4981,
+    "route_changes_ref": 3104,
+    "route_change_ratio_clf": 1.6047036082474226,
+    "uturn_flips_clf": 830,
+    "route_continuity_ref": 0.992590206185567
   },
   "history": null,
   "max_train_rows": null

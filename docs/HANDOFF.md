@@ -115,6 +115,14 @@ log loss for probability quality (HMM consumes probabilities).
 `scripts/run_experiment.py <name>` does the group CV (same 5 folds for everyone), only trains on `ref_valid` rows, and logs
 per fold + student-test: accuracy, macro precision/recall/F1, log loss, observation Top-1, confusion matrix, classifier-only
 route continuity, train time, inference time, config and seed - exactly the columns of the report's comparison table.
+
+**Route continuity definition (changed 2026-11-18, `pathsnap/evaluate.py`).** Share of predicted *arc changes*
+(consecutive observations on different arcs) that are drivable: the next arc is reachable within 3 forward arcs
+without a U-turn; a flip onto the reverse twin of the same road is always broken. Pooled over all arc changes of all
+trips, and always reported with the number of arc changes as a ratio to the reference route's (ideal 1.0). The old
+version scored every consecutive pair, so same-arc pairs (75-85% at 1 Hz) inflated it: a constant prediction scored
+1.0 and LightGBM 0.929 (now 0.657). The old function is kept as `step_consistency` - do not report it as accuracy.
+For the HMM, continuity is near-guaranteed by its transition model; judge it on Top-1 and route F1.
 `results/model_comparison.csv` is built from those JSONs. It also saves out-of-fold probabilities
 (`data/processed/probs_<model>_{train_oof,student_test}.parquet`: `trip_id, obs_idx, arc_id, prob`) which P1 uses to
 tune the HMM decoder (`python scripts/tune_hmm.py --probs <model>`), and `models/<name>.joblib` =
@@ -146,11 +154,13 @@ out = run_trip(trip_dir, lambda X: art["model"].predict_proba(X)[:, 1], evaluate
 * Heuristic floors (valid points): nearest arc only = 56% top-1; distance+heading rule = 84.6% (train),
   84.3% (student_test). Beat these!
 * **Model 1, LightGBM (`results/experiments/lightgbm_gbdt.json`, initial config):** CV macro-F1 0.931 +- 0.015,
-  CV Top-1 0.883; student-test Top-1 0.892, macro-F1 0.936, log loss 0.065, classifier-only route continuity 0.929.
+  CV Top-1 0.883; student-test Top-1 0.892, macro-F1 0.936, log loss 0.065, classifier-only route continuity 0.657
+  (1.57x the reference route's arc changes, 646 U-turn flips onto the twin arc).
   Train time ~15 s, inference ~0.3 s for all 10 test trips.
 * Harness sanity check with Gaussian NB (template, not one of the five): student-test Top-1 0.817 - below the 0.843
   heuristic, so a model must clear that bar to be worth keeping.
-* **HMM on top of LightGBM (student_test): top-1 89.2% -> 94.3%, route continuity 92.9% -> 98.1%**
+* **HMM on top of LightGBM (student_test): top-1 89.2% -> 94.3%, route F1 91.3% -> 97.3%,
+  route continuity 65.7% -> 97.2%** (reference route itself: 99.3%; arc changes 1.57x -> 1.04x the reference's)
   (decoder tuned on the earlier stand-in copy of this same model; re-tuned on the final model later);
   HMM helped on every one of the 10 student-test trips.
 * Data caveat: train trips `00000054` (10.7% valid) and `00000033` (33%) have very noisy GPS (median 120-140 m

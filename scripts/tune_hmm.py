@@ -21,7 +21,7 @@ import config
 from pathsnap.io import list_trips, trip_dir
 from pathsnap.pipeline import PreparedTrip
 from pathsnap.hmm import HMMParams, TransitionGeometry, decode
-from pathsnap.evaluate import route_continuity
+from pathsnap.evaluate import continuity_counts
 
 GRID = dict(beta=[8.0, 15.0, 30.0, 60.0], lam_break=[6.0, 12.0, 24.0],
             lam_uturn=[0.0, 6.0, 12.0], eps=[1e-3, 1e-4], back_pen=[1.0], back_free_m=[10.0], w_head=[0.0])
@@ -41,9 +41,8 @@ def trip_counts(partition, tid, prob, sets):
     out = []
     for s in sets:
         pred = decode(prep, prob, HMMParams(**s), tg)["pred_arc"]
-        a = pred[:-1]; b = pred[1:]
-        cont = int(((a == b) | (prep.net.v[a] == prep.net.u[b])).sum())
-        out.append((int((pred[valid] == ref[valid]).sum()), int(valid.sum()), cont, len(pred) - 1))
+        cc = continuity_counts(pred, prep.net)
+        out.append((int((pred[valid] == ref[valid]).sum()), int(valid.sum()), cc["good"], cc["n_changes"]))
     return out
 
 

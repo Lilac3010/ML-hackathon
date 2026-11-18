@@ -25,7 +25,7 @@ import pandas as pd
 import config
 from pathsnap.features import FEATURE_COLS
 from pathsnap.evaluate import (assign_folds, N_FOLDS, candidate_metrics, observation_top1,
-                               route_continuity)
+                               continuity_counts, continuity_from_counts)
 from pathsnap.io import trip_dir
 from pathsnap.pipeline import PreparedTrip
 
@@ -89,16 +89,23 @@ def cross_validate(mod, params, tr, seed=config.SEED, folds=None):
 
 
 def _clf_continuity(te, prob):
-    """Classifier-only route continuity on student_test (top-1 candidate per GPS point)."""
-    vals, wts = [], []
+    """Classifier-only route continuity on student_test (top-1 candidate per GPS point),
+    pooled over all arc changes of all trips, plus arc-change counts vs the reference route."""
+    pc, rc = [], []
     for tid, g in te.assign(_p=prob).groupby("trip_id", sort=False):
-        prep = PreparedTrip(trip_dir("student_test", tid), with_labels=False)
+        prep = PreparedTrip(trip_dir("student_test", tid), with_labels=True)
         top = g.loc[g.groupby("obs_idx")["_p"].idxmax()]
         pred = np.full(len(prep.P), -1, dtype=np.int64)
         pred[top["obs_idx"].to_numpy()] = top["arc_id"].to_numpy()
-        vals.append(route_continuity(pred, prep.net))
-        wts.append(len(prep.P))
-    return float(np.average(vals, weights=wts))
+        pc.append(continuity_counts(pred, prep.net))
+        rc.append(continuity_counts(prep.ref["ref_arc"], prep.net))
+    n_pred = sum(c["n_changes"] for c in pc)
+    n_ref = sum(c["n_changes"] for c in rc)
+    return dict(route_continuity_clf_only=continuity_from_counts(pc),
+                route_changes_clf=n_pred, route_changes_ref=n_ref,
+                route_change_ratio_clf=n_pred / n_ref if n_ref else float("nan"),
+                uturn_flips_clf=sum(c["n_uturn"] for c in pc),
+                route_continuity_ref=continuity_from_counts(rc))
 
 
 def run_experiment(name, params=None, tag=None, seed=config.SEED, tables=None, verbose=True):
@@ -130,7 +137,7 @@ def run_experiment(name, params=None, tag=None, seed=config.SEED, tables=None, v
     ph = (np.clip(pte[te["ref_valid"].to_numpy()], 0, 1) >= 0.5).astype(int)
     cm = [[int(((yv == 0) & (ph == 0)).sum()), int(((yv == 0) & (ph == 1)).sum())],
           [int(((yv == 1) & (ph == 0)).sum()), int(((yv == 1) & (ph == 1)).sum())]]
-    m.update(confusion_matrix=cm, route_continuity_clf_only=_clf_continuity(te, pte),
+    m.update(confusion_matrix=cm, **_clf_continuity(te, pte),
              train_time_s=train_s, inference_time_s=infer_s,
              inference_ms_per_1k_rows=1000 * infer_s / (len(te) / 1000), n_train_rows=int(len(fit_df)))
     if verbose:

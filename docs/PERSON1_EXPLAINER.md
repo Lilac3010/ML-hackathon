@@ -82,7 +82,8 @@ dt_prev, heading_valid) add nothing; importance is not causal and correlated fea
    can "restart" on a new part of the network instead of failing. `connect_route` then bridges non-adjacent consecutive
    arcs with the shortest path if one exists within 2.5 km, otherwise records a *route break*.
 6. **Did it help?** (student_test, stand-in classifier, `results/hmm_eval_standin_lgbm_student_test.csv`):
-   top-1 89.2% -> 94.1% with default parameters, 94.3% after tuning; route continuity 92.9% -> 98.1%; better on all 10
+   top-1 89.2% -> 94.1% with default parameters, 94.3% after tuning; route F1 91.3% -> 97.3%; route continuity
+   (share of arc changes that are drivable, see `evaluate.route_continuity`) 65.7% -> 97.2%; better on all 10
    trips. Parameter search (`scripts/tune_hmm.py`, 72 settings, train out-of-fold probabilities only): best
    beta=8, lam_break=24, lam_uturn=12, eps=1e-3. The best values sit at the edge of the grid, so the gain from
    tuning is small and a wider search might help slightly. Cases where it can fail: very noisy GPS where the emissions

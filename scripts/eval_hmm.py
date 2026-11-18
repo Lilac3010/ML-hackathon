@@ -20,7 +20,7 @@ import config
 from pathsnap.io import list_trips, trip_dir
 from pathsnap.pipeline import PreparedTrip
 from pathsnap.hmm import HMMParams, TransitionGeometry, decode
-from pathsnap.evaluate import route_continuity, sequence_scores
+from pathsnap.evaluate import continuity_counts, continuity_from_counts, sequence_scores
 
 
 def load_params(path):
@@ -42,11 +42,17 @@ def eval_trip(partition, tid, prob, params):
     hmm = decode(prep, prob, params, tg)["pred_arc"]
     ref = pt.ref_arc.to_numpy()
     row = dict(trip_id=tid, n_valid=int(valid.sum()))
+    rc = continuity_counts(ref, prep.net)
+    row["ref_changes"] = rc["n_changes"]
     for name, pred in (("clf", clf), ("hmm", hmm)):
         s = sequence_scores(pred, ref, valid)
+        cc = continuity_counts(pred, prep.net)
         row[f"{name}_top1"] = s["pointwise_accuracy"]
         row[f"{name}_route_f1"] = s["route_arc_f1"]
-        row[f"{name}_continuity"] = route_continuity(pred, prep.net)
+        row[f"{name}_continuity"] = continuity_from_counts(cc)
+        row[f"{name}_cont_good"] = cc["good"]
+        row[f"{name}_changes"] = cc["n_changes"]
+        row[f"{name}_uturns"] = cc["n_uturn"]
     return row
 
 
@@ -66,7 +72,13 @@ def main():
     w = df.n_valid
     allrow = {"trip_id": "ALL(weighted)", "n_valid": int(w.sum())}
     for c in df.columns[2:]:
-        allrow[c] = float(np.average(df[c].fillna(0), weights=w))
+        if c.endswith(("_cont_good", "_changes", "_uturns")):
+            allrow[c] = int(df[c].sum())
+        elif not c.endswith("_continuity"):
+            allrow[c] = float(np.average(df[c].fillna(0), weights=w))
+    for name in ("clf", "hmm"):     # continuity is pooled over arc changes, not averaged over trips
+        allrow[f"{name}_continuity"] = allrow[f"{name}_cont_good"] / max(allrow[f"{name}_changes"], 1)
+        allrow[f"{name}_change_ratio"] = allrow[f"{name}_changes"] / max(allrow["ref_changes"], 1)
     df = pd.concat([df, pd.DataFrame([allrow])], ignore_index=True)
     out = config.RESULTS_DIR / f"hmm_eval_{a.probs}_{a.partition}.csv"
     df.to_csv(out, index=False)

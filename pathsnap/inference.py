@@ -65,8 +65,10 @@ def run_trip(tdir, predict_proba, params: HMMParams | None = None, evaluate=Fals
         pred_route_polyline=arcs_to_polyline(prep, route_arcs),
         route_breaks=int(breaks),
         n_imputed=int(res["imputed"].sum()),
-        continuity_hmm=route_continuity(pred, prep.net),
+        continuity_hmm=route_continuity(pred, prep.net),      # share of arc changes that are drivable
         continuity_clf=route_continuity(clf, prep.net),
+        arc_changes_hmm=int(np.sum((pred[:-1] != pred[1:]) & (pred[:-1] >= 0) & (pred[1:] >= 0))),
+        arc_changes_clf=int(np.sum((clf[:-1] != clf[1:]) & (clf[:-1] >= 0) & (clf[1:] >= 0))),
         timing_s=dict(prepare=t_prep - t0, model=t_model - t_prep, decode=t_dec - t_model,
                       total=t_dec - t0),
     )

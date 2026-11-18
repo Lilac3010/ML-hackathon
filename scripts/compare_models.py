@@ -32,7 +32,9 @@ def main():
                          cv_top1=c["top1_mean"], cv_top1_std=c["top1_std"], cv_log_loss=c["log_loss_mean"],
                          test_top1=s["top1_accuracy"], test_precision_macro=s["precision_macro"],
                          test_recall_macro=s["recall_macro"], test_f1_macro=s["f1_macro"], test_log_loss=s["log_loss"],
-                         route_continuity=s["route_continuity_clf_only"], train_time_s=s["train_time_s"],
+                         route_continuity=s["route_continuity_clf_only"],
+                         route_change_ratio=s.get("route_change_ratio_clf", np.nan),   # ideal 1.0
+                         train_time_s=s["train_time_s"],
                          inference_s=s["inference_time_s"], inference_ms_per_1k_rows=s["inference_ms_per_1k_rows"],
                          n_train_rows=s["n_train_rows"]))
     df = pd.DataFrame(rows).sort_values("cv_top1", ascending=False)
