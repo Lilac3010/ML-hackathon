@@ -1,0 +1,9 @@
+partition,file_type,expected,available,parsed,bytes_total,bytes_min,bytes_median,bytes_max
+train,track,80,80,80,6872352,11566,49352.0,626431
+train,nodes,80,80,80,38431647,5681,195546.0,2945057
+train,arcs,80,80,80,44267751,4700,190901.5,3856964
+train,route,80,80,80,165702,253,1397.0,12121
+student_test,track,10,10,10,625911,8278,45983.5,133479
+student_test,nodes,10,10,10,1822179,35400,131930.0,532700
+student_test,arcs,10,10,10,1902157,30902,127358.0,624245
+student_test,route,10,10,10,18344,474,1176.5,7628
